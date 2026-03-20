@@ -1,17 +1,48 @@
 var express = require('express');
 var router = express.Router();
+const userController = require('../modules/user/userController');
 
-/* GET home page. */
-router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Bem vindo!' });
-  console.log("app inicializado e respondendo");
+const authMiddleware = require('../middlewares/auth');
+const upload = require('../middlewares/multer');
+
+// Rota para a página inicial 
+router.get('/', function (req, res, next) {
+   res.render('index', { title: 'Vídeos Curtos e Engajadores' });
 });
 
-router.get('/register', function(req, res, next){
-  res.render('register', {title: 'Criar conta'});
+
+// Rota para exibir o formulário de cadastro
+router.get('/register', (req, res) => {
+   res.render('register', { title: 'Criar Conta' });
 });
 
-const userController = require('../modules/user/userController')
-router.post('/register', userController.register );
+// Rota que processa o formulário de cadastro
+router.post('/register', userController.register);
 
-module.exports = router;
+// Rota para exibir o formulário de login
+router.get('/login', (req, res) => {
+   res.render('login', { title: 'Entrar' });
+});
+
+// Rota para processar o formulário de login
+router.post('/login', userController.login);
+
+// Rota para processar o logout
+router.get('/logout', userController.logout);
+
+// Rota para exibir o feed de vídeos (protegida por autenticação)
+router.get('/feed', authMiddleware, async (req, res) => {
+    const user = await userController.getProfile(req.session.user.id);
+    res.render('home', { user });
+});
+
+// Rota para exibir o perfil do usuário (protegida por autenticação)
+router.get('/profile/edit', authMiddleware, async (req, res) => {
+    const user = await userController.getProfile(req.session.user.id);
+    res.render('edit-profile', { user });
+});
+
+// Rota de atualização (Protegida + Upload de 1 arquivo chamado 'profilePicture')
+router.post('/profile/edit', authMiddleware, upload.single('profilePicture'), userController.updateProfile);
+
+module.exports = router; // <------ última linha do arquivo
